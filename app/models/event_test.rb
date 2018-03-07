@@ -18,10 +18,12 @@ class EventTest < ActiveSupport::TestCase
     assert_equal 7, availabilities.length
   end
 
-  test "test with start time and end time in between slots" do
+  test "test with times in between half-hours and with incorrect dates" do
 
     Event.create kind: 'opening', starts_at: DateTime.parse("2014-08-04 09:06"), ends_at: DateTime.parse("2014-08-04 12:43"), weekly_recurring: true
     Event.create kind: 'appointment', starts_at: DateTime.parse("2014-08-11 10:52"), ends_at: DateTime.parse("2014-08-11 11:07")
+    Event.create kind: 'opening', starts_at: DateTime.parse("2014-08-12 16:00"), ends_at: DateTime.parse("2014-08-02 14:00"), weekly_recurring: false
+    Event.create kind: 'opening', starts_at: DateTime.parse("2014-08-11 10:52"), ends_at: DateTime.parse("2014-08-12 11:07"), weekly_recurring: false
 
     availabilities = Event.availabilities DateTime.parse("2014-08-10")
     assert_equal Date.new(2014, 8, 10), availabilities[0][:date]

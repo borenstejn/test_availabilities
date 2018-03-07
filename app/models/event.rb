@@ -3,7 +3,7 @@ class Event < ApplicationRecord
   def self.availabilities(date)
     result = []
     7.times do
-      slots = self.day_availabilities(date.to_date)
+      slots = self.by_date_availabilities(date.to_date)
       hash = { date: date, slots: slots }
       result << hash
       date += 1.day
@@ -11,10 +11,10 @@ class Event < ApplicationRecord
     result
   end
 
-  def self.day_availabilities(date)
+  def self.by_date_availabilities(date)
     today = date.to_s
     tomorrow = (date + 1.day).to_s
-    recurring_openings = recurring_openings(date)
+    recurring_openings = pick_recurring_openings(date)
     openings = Event.where("starts_at > ? AND ends_at < ? AND kind = ?", today, tomorrow, 'opening')
     all_openings = (recurring_openings + openings)
     opening_slots = day_slots(all_openings)
@@ -23,7 +23,7 @@ class Event < ApplicationRecord
     available_slots = opening_slots - appointment_slots
   end
 
-  def self.recurring_openings(date)
+  def self.pick_recurring_openings(date)
     wday = date.wday.to_s
     wday_openings = Event.where(weekly_recurring: true).where("strftime('%w', starts_at) = ?", wday)
   end
@@ -39,9 +39,11 @@ class Event < ApplicationRecord
 
   def self.half_hours_slots(event)
     slots = []
-    return slots unless event.usable?
+    return slots unless event.correct?
     start_time = event.starts_at
     end_time = event.ends_at
+
+    # DEALS WHEN STARTS_AT OR ENDS_AT is in between half hours
     modulo_start_time = start_time.min % 30
     modulo_end_time = end_time.min % 30
 
@@ -72,7 +74,8 @@ class Event < ApplicationRecord
     slots.uniq
   end
 
-  def usable?
+  # REJECTS AS INCORRECT EVENTS THOSE WITH ENDING BEFORE START MOMENT OR ON A DIFFERENT DAY
+  def correct?
     starts_at < ends_at && starts_at.to_date == ends_at.to_date
   end
 
